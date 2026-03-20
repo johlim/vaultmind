@@ -225,11 +225,11 @@ Replace `/path/to/vaultmind` with the actual path, e.g. `/home/paulo/vaultmind`.
 
 Ollama uses your GPU automatically if available. To verify:
 ```bash
-ollama run llama3.1:8b "hello"
-# look for: device=GPU in the output
+ollama ps
+# look for: PROCESSOR (100% CPU/GPU)
 ```
 
-If it shows `device=CPU` and you have a GPU:
+If it shows `100% CPU` and you have a GPU:
 
 **AMD (Linux):**
 ```bash
