@@ -166,7 +166,7 @@ This is a technical conversation. Write in first person. Focus on what I built a
 (your content here)
 ```
 
-Output: `Vault/Captures/YYYY-MM-DD title/` all notes from the same dump go into one subfolder.
+Output: `Vault/Captures/title/` all notes from the same dump go into one subfolder.
 
 ---
 
