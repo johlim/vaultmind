@@ -18,13 +18,13 @@ import json
 import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import VAULT_PATH, MAX_NOTE_CHARS
-from ai_backend import get_backend, call_ai, backend_label
+from config import EXCLUDED_FOLDERS, MAX_FILE_SIZE, VAULT_PATH, MAX_NOTE_CHARS
+from ai_backend import get_backend, call_ai, backend_label, run_startup_checks
 
 VAULT_PATH      = os.path.expanduser(VAULT_PATH)
 BRIEFING_FOLDER = os.path.join(VAULT_PATH, "Briefings")
 
-# load prompts from prompts.json — edit that file to change the briefing format
+# load prompts from prompts.json
 with open(os.path.join(os.path.dirname(__file__), "prompts.json"), encoding="utf-8") as f:
     PROMPTS = json.load(f)
 
@@ -63,11 +63,14 @@ def collect_notes(days_back: float) -> list[dict]:
         key=os.path.getmtime,
         reverse=True  # most recently modified first
     ):
-        if any(skip in path for skip in ["Briefings", "Insights"]):
+        if any(skip in path for skip in EXCLUDED_FOLDERS):
             continue
 
         mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
         if mtime >= cutoff:
+            if os.path.getsize(path) > MAX_FILE_SIZE:
+                continue
+
             with open(path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
             notes.append({
@@ -163,6 +166,7 @@ def write_briefing(content: str) -> str:
 
 def main():
     backend = get_backend()
+    run_startup_checks()
 
     print(f"\n☀️  morning briefing")
     print(f"   backend : {backend_label(backend)}")

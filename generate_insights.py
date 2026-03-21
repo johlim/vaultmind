@@ -21,8 +21,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # add script directory to path so local modules are found
 sys.path.insert(0, os.path.dirname(__file__))
-from config import VAULT_PATH, DAYS_BACK, MAX_NOTE_CHARS
-from ai_backend import get_backend, call_ai, backend_label
+from config import MAX_FILE_SIZE, VAULT_PATH, DAYS_BACK, MAX_NOTE_CHARS, EXCLUDED_FOLDERS
+from ai_backend import get_backend, call_ai, backend_label, run_startup_checks
 
 # expand ~ to the full home directory path
 VAULT_PATH     = os.path.expanduser(VAULT_PATH)
@@ -76,12 +76,14 @@ def collect_recent_notes(days: int) -> list[dict]:
     notes  = []
 
     for path in glob.glob(f"{VAULT_PATH}/**/*.md", recursive=True):
-        # skip previously generated insight notes
-        if "Insights" in path:
+        if any(folder in path for folder in EXCLUDED_FOLDERS):
             continue
 
         mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
         if mtime >= cutoff:
+            if os.path.getsize(path) > MAX_FILE_SIZE:
+                continue
+
             with open(path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
             notes.append({"file": os.path.basename(path), "content": content})
@@ -238,6 +240,7 @@ def write_insight_note(lens_results: list[dict], synthesis: str, note_count: int
 
 if __name__ == "__main__":
     backend = get_backend()
+    run_startup_checks()
     period  = "week" if DAYS_BACK <= 7 else "month"
 
     print(f"\n📖 Collecting notes from the last {DAYS_BACK} days...")
@@ -253,7 +256,6 @@ if __name__ == "__main__":
     lens_results = [None] * len(LENSES)
 
     # run all lenses simultaneously using threads
-    # each lens is an independent AI call so they can safely run in parallel
     def run_lens_indexed(args):
         i, lens = args
         return i, run_lens(lens, notes_block, period, backend)

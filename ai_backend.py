@@ -3,23 +3,80 @@
 # =============================================================
 # Shared AI caller used by all scripts.
 # All Ollama communication goes through this file.
-# If you want to add a new model provider, do it here.
 # =============================================================
 
 import os
 import sys
 import requests
 
-# add the script directory to the path so config.py is always found
 sys.path.insert(0, os.path.dirname(__file__))
-from config import OLLAMA_MODEL, OLLAMA_API_URL, TEMPERATURE, TIMEOUT, KEEP_ALIVE, NUM_CTX
+from config import OLLAMA_MODEL, OLLAMA_API_URL, TEMPERATURE, TIMEOUT, KEEP_ALIVE, NUM_CTX, VAULT_PATH
+
+# terminal colors
+R    = "\033[0m"
+RED  = "\033[31m"
+YELLOW = "\033[33m"
+GREEN  = "\033[32m"
+DIM    = "\033[2m"
+
+
+def check_ollama() -> bool:
+    base_url = OLLAMA_API_URL.replace("/api/generate", "")
+
+    # check if Ollama is running
+    try:
+        r = requests.get(f"{base_url}/api/tags", timeout=5)
+        r.raise_for_status()
+    except requests.exceptions.ConnectionError:
+        print(f"{RED}  Error: Ollama is not running.{R}")
+        print(f"     Start it with: {YELLOW}ollama serve{R}")
+        return False
+    except Exception as e:
+        print(f"{RED}  Error: Could not reach Ollama: {e}{R}")
+        return False
+
+    # check if the configured model is available
+    models = [m["name"] for m in r.json().get("models", [])]
+    if not any(OLLAMA_MODEL in m for m in models):
+        print(f"{RED}  Error: Model '{OLLAMA_MODEL}' not found.{R}")
+        print(f"     Available models: {', '.join(models) if models else 'none'}")
+        return False
+
+    return True
+
+
+def check_vault() -> bool:
+    """
+    Check if the configured vault path exists.
+    Prints a friendly error if not found.
+
+    Returns:
+        True if vault exists, False otherwise.
+    """
+    vault = os.path.expanduser(VAULT_PATH)
+    if not os.path.isdir(vault):
+        print(f"{RED}  Error: Vault not found at: {vault}{R}")
+        print(f"     Update VAULT_PATH in config.py")
+        return False
+    return True
+
+
+def run_startup_checks() -> None:
+    print(f"{DIM}  running startup checks...{R}")
+
+    vault_ok  = check_vault()
+    ollama_ok = check_ollama()
+
+    if not vault_ok or not ollama_ok:
+        print(f"\n{RED}  fix the issues above and try again.{R}\n")
+        sys.exit(1)
+
+    print(f"{GREEN}  all checks passed{R}\n")
 
 
 def get_backend() -> str:
     """
     Read the --api flag from command line arguments.
-    Currently only Ollama is supported, so this always returns 'ollama'.
-    Kept for future extensibility (e.g. --api gemini, --api openai).
     """
     return "ollama"
 
@@ -35,10 +92,6 @@ def call_ai(prompt: str, backend: str = "ollama", timeout: int = None) -> str:
 
     Returns:
         The model's response as a stripped string.
-
-    Raises:
-        requests.exceptions.HTTPError: If the Ollama API returns an error.
-        ValueError: If the response format is unexpected.
     """
     return _call_ollama(prompt, timeout or TIMEOUT)
 
@@ -46,13 +99,6 @@ def call_ai(prompt: str, backend: str = "ollama", timeout: int = None) -> str:
 def _call_ollama(prompt: str, timeout: int) -> str:
     """
     Internal function that makes the actual HTTP request to the Ollama API.
-
-    Uses settings from config.py:
-        - OLLAMA_MODEL:   which model to run
-        - OLLAMA_API_URL: where Ollama is listening
-        - TEMPERATURE:    controls randomness (low = factual)
-        - KEEP_ALIVE:     how long to keep the model loaded
-        - NUM_CTX:        context window size in tokens
 
     Args:
         prompt:  The prompt to send.
@@ -66,24 +112,21 @@ def _call_ollama(prompt: str, timeout: int) -> str:
         json={
             "model":      OLLAMA_MODEL,
             "prompt":     prompt,
-            "stream":     False,       # get the full response at once, not streamed
-            "keep_alive": KEEP_ALIVE,  # keep model in memory between calls
+            "stream":     False,
+            "keep_alive": KEEP_ALIVE,
             "options": {
-                "temperature":    TEMPERATURE,  # lower = more factual
-                "top_p":          0.9,          # nucleus sampling threshold
-                "repeat_penalty": 1.1,          # penalize repeated phrases
-                "num_ctx":        NUM_CTX,      # context window in tokens
+                "temperature":    TEMPERATURE,
+                "top_p":          0.9,
+                "repeat_penalty": 1.1,
+                "num_ctx":        NUM_CTX,
             }
         },
         timeout=timeout,
     )
 
-    # raise an exception for HTTP errors (4xx, 5xx)
     response.raise_for_status()
-
     data = response.json()
 
-    # sanity check — Ollama always returns a 'response' field for /api/generate
     if "response" not in data:
         raise ValueError(f"Unexpected Ollama response format: {data}")
 
@@ -91,8 +134,5 @@ def _call_ollama(prompt: str, timeout: int) -> str:
 
 
 def backend_label(backend: str = "ollama") -> str:
-    """
-    Return a human-readable label for the current backend.
-    Used in terminal output so users know which model is running.
-    """
+    """Return a human-readable label for the current backend."""
     return f"Ollama ({OLLAMA_MODEL})"
