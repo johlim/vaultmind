@@ -16,7 +16,7 @@
 #   Write in first person. Focus on what I built.
 #   ---end---
 #
-# Output: Vault/Captures/YYYY-MM-DD title/
+# Output: Vault/Captures/title/
 # =============================================================
 
 import os
@@ -33,7 +33,7 @@ from ai_backend import get_backend, call_ai, backend_label
 VAULT_PATH  = os.path.expanduser(VAULT_PATH)
 OUTPUT_BASE = "Captures"  # all output goes under Vault/Captures/
 
-# load prompts from prompts.json — edit that file to change note format
+# load prompts from prompts.json
 with open(os.path.join(os.path.dirname(__file__), "prompts.json"), encoding="utf-8") as f:
     PROMPTS = json.load(f)
 

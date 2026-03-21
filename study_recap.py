@@ -16,7 +16,7 @@ import json
 import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import VAULT_PATH, HOURS_BACK, MAX_NOTE_CHARS
+from config import EXCLUDED_FOLDERS, VAULT_PATH, HOURS_BACK, MAX_NOTE_CHARS
 from ai_backend import get_backend, call_ai, backend_label
 
 VAULT_PATH   = os.path.expanduser(VAULT_PATH)
@@ -71,7 +71,7 @@ def find_recent_notes(hours: int) -> list[dict]:
         key=os.path.getmtime,
         reverse=True
     ):
-        if any(skip in path for skip in ["Briefings", "Insights", "Study Recaps", "Captures"]):
+        if any(folder in path for folder in EXCLUDED_FOLDERS):
             continue
 
         mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))

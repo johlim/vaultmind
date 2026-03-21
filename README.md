@@ -176,7 +176,7 @@ All settings are in `config.py`. You only need to edit this file.
 
 ```python
 # Model
-OLLAMA_MODEL = "llama3.1:8b"        # model name — must match ollama list
+OLLAMA_MODEL = "llama3.1:8b"        # model name
 TEMPERATURE  = 0.2                   # 0.0 = deterministic, 1.0 = creative. Keep low for factual output.
 
 # API
@@ -274,8 +274,8 @@ All prompts are stored in `prompts.json`. You can edit them without touching any
 
 ```
 vaultmind/
-├── config.py              # all settings — only file you need to edit
-├── prompts.json           # all prompts — edit to customize output
+├── config.py              # all settings
+├── prompts.json           # all prompts
 ├── ai_backend.py          # shared Ollama caller used by all scripts
 ├── generate_insights.py   # weekly/monthly insight report
 ├── morning_briefing.py    # daily morning briefing

@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # add script directory to path so local modules are found
 sys.path.insert(0, os.path.dirname(__file__))
-from config import VAULT_PATH, DAYS_BACK, MAX_NOTE_CHARS
+from config import VAULT_PATH, DAYS_BACK, MAX_NOTE_CHARS, EXCLUDED_FOLDERS
 from ai_backend import get_backend, call_ai, backend_label
 
 # expand ~ to the full home directory path
@@ -76,8 +76,7 @@ def collect_recent_notes(days: int) -> list[dict]:
     notes  = []
 
     for path in glob.glob(f"{VAULT_PATH}/**/*.md", recursive=True):
-        # skip previously generated insight notes
-        if "Insights" in path:
+        if any(folder in path for folder in EXCLUDED_FOLDERS):
             continue
 
         mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
