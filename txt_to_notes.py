@@ -16,7 +16,7 @@
 #   Write in first person. Focus on what I built.
 #   ---end---
 #
-# Output: Vault/Captures/title/
+# Output: Vault/Captures/YYYY-MM-DD title/
 # =============================================================
 
 import os
@@ -27,19 +27,17 @@ import re
 import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
-from config import VAULT_PATH
-from ai_backend import get_backend, call_ai, backend_label
+from config import MAX_FILE_SIZE, VAULT_PATH
+from ai_backend import get_backend, call_ai, backend_label, run_startup_checks
 
 VAULT_PATH  = os.path.expanduser(VAULT_PATH)
-OUTPUT_BASE = "Captures"  # all output goes under Vault/Captures/
+OUTPUT_BASE = "Captures"
 
-# load prompts from prompts.json
 with open(os.path.join(os.path.dirname(__file__), "prompts.json"), encoding="utf-8") as f:
     PROMPTS = json.load(f)
 
 GROUNDING = PROMPTS["grounding"]
 
-# terminal color codes
 R      = "\033[0m"
 DIM    = "\033[2m"
 BOLD   = "\033[1m"
@@ -52,15 +50,7 @@ RED    = "\033[31m"
 def fill_prompt(template: str, **kwargs) -> str:
     """
     Safe placeholder replacement that won't crash on literal { } in the template.
-    Uses simple string replacement instead of Python's .format() to avoid
-    KeyErrors when the prompt contains JSON examples with curly braces.
-
-    Args:
-        template: The prompt template string with {placeholder} markers.
-        **kwargs: Key-value pairs to substitute into the template.
-
-    Returns:
-        The prompt with all placeholders replaced.
+    Uses simple string replacement instead of Python's .format().
     """
     result = template
     for key, value in kwargs.items():
@@ -71,19 +61,15 @@ def fill_prompt(template: str, **kwargs) -> str:
 def parse_input(raw: str) -> tuple[str, str]:
     """
     Parse the input file for an optional instructions block.
-    If found, separates instructions from content.
 
-    Instructions block format:
+    Format:
         ---instructions---
         your instructions here
         ---end---
-        (your content below)
-
-    Args:
-        raw: Full contents of the input .txt file.
+        (content below)
 
     Returns:
-        Tuple of (instructions, content). Instructions is empty string if not found.
+        Tuple of (instructions, content).
     """
     match = re.match(r"---instructions---\s*(.*?)\s*---end---\s*", raw, re.DOTALL | re.IGNORECASE)
     if match:
@@ -93,47 +79,33 @@ def parse_input(raw: str) -> tuple[str, str]:
 
 def collect_vault_tags() -> list[str]:
     """
-    Scan all notes in the vault and collect existing tags.
-    Reads both YAML frontmatter tags and inline #hashtags.
-    These are passed to the AI so it reuses existing tags
-    instead of inventing new inconsistent ones.
-
-    Returns:
-        Sorted list of unique tag strings.
+    Scan all notes and collect existing tags from frontmatter and inline #hashtags.
+    Passed to the AI so it reuses existing tags instead of inventing new ones.
     """
     tags = set()
-
     for path in glob.glob(f"{VAULT_PATH}/**/*.md", recursive=True):
         try:
+            if os.path.getsize(path) > MAX_FILE_SIZE:
+                continue
             with open(path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-
-            # extract tags from YAML frontmatter
             fm = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
             if fm:
                 for line in fm.group(1).splitlines():
                     m = re.match(r"\s*-\s*(.+)", line)
                     if m:
                         tags.add(m.group(1).strip().lower())
-
-            # extract inline #hashtags from note body
             for t in re.findall(r"#([a-zA-Z][a-zA-Z0-9_/-]+)", content):
                 tags.add(t.lower())
-
         except Exception:
             continue
-
     return sorted(tags)
 
 
 def collect_note_titles() -> list[str]:
     """
-    Collect all note titles from the vault for wikilink generation.
-    Strips date prefixes (e.g. '2026-03-20 ') from filenames so the
-    model can reference notes by their clean title.
-
-    Returns:
-        List of note title strings without .md extension or date prefix.
+    Collect all note titles for wikilink generation.
+    Strips date prefixes from filenames.
     """
     titles = []
     for path in glob.glob(f"{VAULT_PATH}/**/*.md", recursive=True):
@@ -143,27 +115,12 @@ def collect_note_titles() -> list[str]:
     return titles
 
 
-def plan_notes(
-    text: str,
-    instructions: str,
-    existing_tags: list[str],
-    existing_titles: list[str],
-    backend: str
-) -> list[dict]:
+def plan_notes(text, instructions, existing_tags, existing_titles, backend) -> list[dict]:
     """
     Pass 1: Ask the AI to analyze the text and plan how many notes to create.
-    Returns a list of note plans (title, type, tags, summary, related notes).
-    The actual note content is written in pass 2.
-
-    Args:
-        text:            The source text to convert.
-        instructions:    Optional user instructions from the file header.
-        existing_tags:   Tags already used in the vault.
-        existing_titles: Note titles already in the vault.
-        backend:         Which AI backend to use.
 
     Returns:
-        List of note plan dicts parsed from the model's JSON response.
+        List of note plan dicts with title, type, tags, summary, related_existing.
 
     Raises:
         ValueError: If the model doesn't return valid JSON.
@@ -182,11 +139,8 @@ def plan_notes(
     )
 
     raw = call_ai(prompt, backend)
-
-    # strip markdown code fences if the model wrapped the JSON in ```
     raw = re.sub(r"```(?:json)?", "", raw).strip()
 
-    # find the JSON array in the response
     match = re.search(r"\[.*\]", raw, re.DOTALL)
     if not match:
         raise ValueError(f"Model did not return a JSON array.\nRaw output:\n{raw[:500]}")
@@ -197,29 +151,10 @@ def plan_notes(
         raise ValueError(f"Invalid JSON from model: {e}\nMatched:\n{match.group()[:500]}")
 
 
-def write_note_content(
-    text: str,
-    note_plan: dict,
-    all_titles_in_batch: list[str],
-    instructions: str,
-    existing_tags: list[str],
-    backend: str
-) -> str:
+def write_note_content(text, note_plan, all_titles_in_batch, instructions, existing_tags, backend) -> str:
     """
     Pass 2: Write the full content for a single note.
-    The model knows about all other notes being created in this batch
-    so it can create meaningful [[wikilinks]] between them.
-
-    Args:
-        text:                The full source text (same for all notes).
-        note_plan:           The plan dict for this specific note from pass 1.
-        all_titles_in_batch: Titles of all notes being created in this run.
-        instructions:        Optional user instructions from the file header.
-        existing_tags:       Tags already used in the vault.
-        backend:             Which AI backend to use.
-
-    Returns:
-        The note body as a Markdown string.
+    The model knows all other notes in this batch so it can cross-link between them.
     """
     tags_hint     = ", ".join(existing_tags[:40]) if existing_tags else "none yet"
     batch_links   = ", ".join(f"[[{t}]]" for t in all_titles_in_batch)
@@ -238,34 +173,13 @@ def write_note_content(
         related_links=related_links,
         tags_hint=tags_hint,
     )
-
     return call_ai(prompt, backend, timeout=300)
 
 
-def write_file(note_plan: dict, body: str, folder_path: str, date_str: str) -> str:
-    """
-    Write a single note to disk with proper Obsidian frontmatter.
-    Sanitizes the title for use as a filename.
-
-    Frontmatter includes:
-    - parent (empty, for Obsidian hierarchy plugins)
-    - tags from the note plan
-    - font (empty, for Obsidian font plugins)
-    - creation date
-
-    Args:
-        note_plan:   The note plan dict with title and tags.
-        body:        The note body Markdown from write_note_content().
-        folder_path: The output folder path.
-        date_str:    Today's date string (YYYY-MM-DD).
-
-    Returns:
-        The full file path of the saved note.
-    """
+def write_file(note_plan, body, folder_path, date_str) -> str:
+    """Write a single note to disk with Obsidian frontmatter."""
     title      = note_plan.get("title", "Untitled")
     tags       = note_plan.get("tags", [])
-
-    # remove characters that are invalid in filenames
     safe_title = re.sub(r'[\\/*?:"<>|]', "", title)
     filename   = f"{date_str} {safe_title}.md"
     filepath   = os.path.join(folder_path, filename)
@@ -283,9 +197,10 @@ def write_file(note_plan: dict, body: str, folder_path: str, date_str: str) -> s
 
 
 def main():
-    args    = [a for a in sys.argv[1:] if a != "--api"]
     backend = get_backend()
+    run_startup_checks()
 
+    args = [a for a in sys.argv[1:] if a != "--api"]
     if not args:
         print(f"{RED}usage: python txt_to_notes.py <file.txt>{R}")
         sys.exit(1)
@@ -298,7 +213,6 @@ def main():
     with open(source, "r", encoding="utf-8", errors="ignore") as f:
         raw = f.read()
 
-    # separate instructions block from content
     instructions, text = parse_input(raw)
 
     if not text:
@@ -312,13 +226,11 @@ def main():
         print(f"{DIM}  instructions detected{R}")
     print()
 
-    # collect existing vault tags and titles for the AI to reuse
     print(f"{DIM}  scanning vault...{R}")
     existing_tags   = collect_vault_tags()
     existing_titles = collect_note_titles()
     print(f"{DIM}  {len(existing_tags)} tags · {len(existing_titles)} note titles{R}\n")
 
-    # pass 1: plan the notes
     print(f"{DIM}  pass 1: planning notes...{R}")
     try:
         plan = plan_notes(text, instructions, existing_tags, existing_titles, backend)
@@ -331,16 +243,13 @@ def main():
         print(f"    {DIM}· {n['title']} [{n['type']}]{R}")
     print()
 
-    # create a dated subfolder for all notes from this run
     date_str    = datetime.datetime.now().strftime("%Y-%m-%d")
     folder_name = re.sub(r'[\\/*?:"<>|]', "", plan[0]["title"]) if plan else "dump"
     folder_path = os.path.join(VAULT_PATH, OUTPUT_BASE, f"{date_str} {folder_name}")
     os.makedirs(folder_path, exist_ok=True)
 
-    # collect all planned titles so pass 2 can cross-link between them
     all_titles_in_batch = [n["title"] for n in plan]
 
-    # pass 2: write each note
     print(f"{DIM}  pass 2: writing notes...{R}\n")
     created = []
     for i, note_plan in enumerate(plan):

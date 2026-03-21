@@ -37,6 +37,8 @@ HOURS_BACK     = 24             # study_recap.py: how many hours back to auto-de
 
 MAX_NOTE_CHARS = 2000           # Max characters read per note. Higher = more detail but slower.
 
+MAX_FILE_SIZE = 1_000_000  # 1MB max per file, skip larger ones
+
 #--------------------------------------------------------------
 # Ignore Folders
 #--------------------------------------------------------------
