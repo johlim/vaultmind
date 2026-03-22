@@ -17,6 +17,7 @@ import sys
 import glob
 import json
 import datetime
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # add script directory to path so local modules are found
@@ -62,31 +63,38 @@ def get_week_label() -> str:
 
 
 def collect_recent_notes(days: int) -> list[dict]:
-    """
-    Scan the vault for .md files modified within the last `days` days.
-    Skips the Insights folder to avoid feeding old insight notes back in.
-
-    Args:
-        days: Number of days to look back from now.
-
-    Returns:
-        List of dicts with 'file' (filename) and 'content' (text) keys.
-    """
     cutoff = datetime.datetime.now() - datetime.timedelta(days=days)
-    notes  = []
+    notes = []
 
-    for path in glob.glob(f"{VAULT_PATH}/**/*.md", recursive=True):
-        if any(folder in path for folder in EXCLUDED_FOLDERS):
+    # VAULT_PATH를 Path 객체로 변환
+    base_path = Path(VAULT_PATH)
+
+    # rglob은 재귀적(recursive)으로 파일을 찾습니다.
+    for path_obj in base_path.rglob("*.md"):
+        # EXCLUDED_FOLDERS 체크 (문자열 비교)
+        if any(folder in str(path_obj) for folder in EXCLUDED_FOLDERS):
             continue
 
-        mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path))
-        if mtime >= cutoff:
-            if os.path.getsize(path) > MAX_FILE_SIZE:
-                continue
+        try:
+            # mtime 확인
+            mtime = datetime.datetime.fromtimestamp(path_obj.stat().st_mtime)
 
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read()
-            notes.append({"file": os.path.basename(path), "content": content})
+            if mtime >= cutoff:
+                # 파일 크기 체크
+                if path_obj.stat().st_size > MAX_FILE_SIZE:
+                    continue
+
+                print(f"Trying to open: {path_obj}")
+
+                # 파일 읽기
+                with path_obj.open("r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+
+                notes.append({"file": path_obj.name, "content": content})
+
+        except OSError as e:
+            print(f"Error accessing {path_obj}: {e}")
+            continue
 
     return notes
 

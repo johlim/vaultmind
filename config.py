@@ -1,7 +1,7 @@
 # -------------------------------------------------------------
 # Model Configuration
 # -------------------------------------------------------------
-OLLAMA_MODEL = "llama3.1:8b"    # Ollama model to use
+OLLAMA_MODEL = "llama3.2:latest"    # Ollama model to use
                                 # Recommended: llama3.1:8b, deepseek-r1:8b, llama3.2:3b
 
 TEMPERATURE  = 0.2              # Controls randomness. Lower = more factual, less hallucination.
@@ -25,7 +25,7 @@ NUM_CTX        = 8192           # Context window size in tokens.
 # -------------------------------------------------------------
 # Vault Configuration
 # -------------------------------------------------------------
-VAULT_PATH = "~/Obsidian"       # Path to your Obsidian vault. Supports ~ for home directory.
+VAULT_PATH = r"C:\Users\jhlim\OneDrive\Obsidian"     # Path to your Obsidian vault. Supports ~ for home directory.
 
 # -------------------------------------------------------------
 # Script Behaviour
@@ -48,6 +48,6 @@ EXCLUDED_FOLDERS = [
     "Study Recaps",
     "Captures",
     # add any folder you want to exclude here
-    # "Templates",
-    # "Archive",
+    "Template",
+    "Templater",
 ]
