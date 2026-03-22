@@ -1,75 +1,69 @@
 {
   "_tip": "Use {placeholders} carefully — they are replaced by the scripts at runtime. Do not remove them. Literal curly braces that are NOT placeholders must be written as {{ and }} so Python does not confuse them with placeholders.",
 
-  "grounding": "IMPORTANT: Only use information explicitly present in the notes above. Do not infer, invent, or assume anything not directly written. If something is unclear, say so.",
+  "grounding": "중요: 위에 제공된 노트에 명시적으로 존재하는 정보만 사용하세요. 직접 적히지 않은 내용을 추론하거나 발명하거나 가정하지 마세요. 불분명한 부분이 있다면 그렇다고 명시하세요.",
 
-  "_grounding_tip": "The grounding rule is injected into every prompt. Lower it if you want more creative output. Remove it entirely at your own risk — the model will hallucinate more.",
+  "_grounding_tip": "이 근거(grounding) 규칙은 모든 프롬프트에 삽입됩니다. 더 창의적인 결과물을 원하면 이 강도를 낮추세요.",
 
 
   "insights": {
-    "_info": "Used by generate_insights.py. Runs once per week or month depending on DAYS_BACK in config.py.",
+    "_info": "generate_insights.py에서 사용됩니다. 설정에 따라 주간 또는 월간 단위로 실행됩니다.",
 
     "lenses": [
       {
-        "_info": "Each lens is a separate AI call. Add, remove or edit lenses freely. The script picks them all up automatically.",
-        "name": "Therapist",
-        "instruction": "Focus on emotional patterns, mood shifts, mental health signals, stress, and psychological well-being. Be compassionate but honest."
+        "_info": "각 렌즈는 별도의 AI 호출입니다.",
+        "name": "상담사",
+        "instruction": "감정적 패턴, 기분 변화, 정신 건강 신호, 스트레스 및 심리적 안녕에 집중하세요. 공감하면서도 정직하게 분석하세요."
       },
       {
-        "name": "Coach",
-        "instruction": "Focus on productivity, goals mentioned, tasks completed or stalled, habits, obstacles, and momentum. Be direct."
+        "name": "코치",
+        "instruction": "생산성, 언급된 목표, 완료되거나 정체된 작업, 습관, 장애물 및 추진력에 집중하세요. 직설적으로 조언하세요."
       },
       {
-        "name": "Pattern Detector",
-        "instruction": "Look for recurring phrases, cycles, excuses, or deferred intentions (e.g. 'tomorrow', 'next week', 'when I...'). Identify loops the person might not see."
+        "name": "패턴 탐지기",
+        "instruction": "반복되는 문구, 주기, 변명 또는 미뤄진 의도를 찾으세요. 본인이 인지하지 못하는 루프를 식별하세요."
       },
       {
-        "name": "Strengths",
-        "instruction": "Focus only on genuine wins, growth, resilience, and positives — even small ones the person may have mentioned casually without giving themselves credit."
+        "name": "강점",
+        "instruction": "진정으로 이룬 성과, 성장, 회복탄력성 및 긍정적인 면에만 집중하세요. 본인이 대수롭지 않게 언급한 작은 부분까지 찾아내세요."
       },
       {
-        "name": "Connections",
-        "instruction": "Find links between notes that seem unrelated. Identify threads, ideas that reappear, or topics that might be influencing each other. IMPORTANT: every note reference MUST be formatted as a wikilink [[NoteName]] using the exact filename without extension. Never reference a note as plain text — always [[NoteName]]."
+        "name": "연결 고리",
+        "instruction": "서로 관련 없어 보이는 노트들 사이의 연결 고리를 찾으세요. 중요: 모든 노트 참조는 확장자를 제외한 정확한 파일명을 사용하여 [[노트이름]] 형태의 위키링크로 작성해야 합니다."
       }
     ],
 
-    "lens_prompt": "You are reading someone's personal Obsidian notes from the past {period} through a specific lens.\n\nLENS: {name}\nINSTRUCTION: {instruction}\n\n{grounding}\n\nNOTES:\n{notes_block}\n\nWrite a focused, specific analysis through this lens only. Reference note filenames when relevant. Be concise but insightful — 150 to 250 words.",
+    "lens_prompt": "당신은 특정 관점을 통해 지난 {period} 동안의 개인 Obsidian 노트를 분석하고 있습니다.\n\n관점: {name}\n지침: {instruction}\n\n{grounding}\n\n노트 내용:\n{notes_block}\n\n이 관점만을 통해 구체적인 분석을 작성하세요. 반드시 한국어로 답변하세요. 간결하면서도 통찰력 있게 150~250단어 내외로 작성하세요.",
 
-    "_lens_prompt_tip": "Placeholders: {period}, {name}, {instruction}, {grounding}, {notes_block}.",
-
-    "synthesis_prompt": "You have analyzed someone's personal Obsidian notes from the past {period} through 5 different lenses:\n\n{combined}\n\n{grounding}\n\nNow write a final synthesis of 150-200 words covering:\n1. The single most important pattern or insight across all lenses\n2. One honest challenge or blind spot\n3. One concrete thing worth trying in the coming week\n\nBe direct, warm, and specific. Only reference things that were actually mentioned in the analyses above.",
+    "synthesis_prompt": "당신은 지난 {period} 동안의 개인 Obsidian 노트를 5가지 관점으로 분석했습니다:\n\n{combined}\n\n{grounding}\n\n이제 최종 종합 리포트를 다음 내용을 포함하여 작성하세요:\n1. 모든 관점을 관통하는 가장 중요한 패턴 또는 통찰\n2. 정직한 과제 또는 맹점\n3. 다음 주에 시도해 볼 구체적인 실천 방안\n\n직설적이면서도 따뜻한 어조를 유지하세요. 반드시 한국어로 답변하세요.",
 
     "_synthesis_prompt_tip": "Placeholders: {period}, {combined}, {grounding}."
   },
 
 
   "morning_briefing": {
-    "_info": "Used by morning_briefing.py. Runs daily, reads notes modified in the last 24h.",
+    "_info": "morning_briefing.py에서 사용됩니다. 매일 실행되며 최근 24시간 내 수정된 노트를 읽습니다.",
 
-    "prompt": "You are generating a personal morning briefing for someone's Obsidian vault.\nToday is {weekday}, {date}.\n\n{grounding}\n\nNOTES MODIFIED YESTERDAY:\n{yesterday_block}\n\nNOTES MODIFIED TODAY (so far):\n{today_block}\n\nWrite a concise morning briefing in Markdown with these sections:\n\n## ☀️ Good Morning\nOne warm, motivating sentence based on what they were working on. Be specific, not generic.\n\n## 📝 Yesterday's Activity\nWhat did they work on? Reference specific note names. 2-4 bullet points max.\n\n## ⚠️ Pending & Unfinished\nAny tasks, todos, or unfinished items found in the notes. Use - [ ] format.\nIf nothing found, write \"Nothing pending found in notes.\"\n\n## 🎯 Suggested Focus for Today\nBased on what's in progress, suggest 1-3 things worth tackling today. Be specific.\n\n## 📅 Notes Modified\nList all note filenames that were modified as [[wikilinks]].\nIMPORTANT: format every single note as [[NoteName]] without the .md extension. Never write plain filenames.\n\nBe concise, warm, and specific. Always write in English, regardless of the language of the notes.",
+    "prompt": "당신은 Obsidian 보관소를 위한 개인 맞춤형 아침 브리핑을 생성하고 있습니다.\n오늘은 {weekday}, {date}입니다.\n\n{grounding}\n\n어제 수정된 노트:\n{yesterday_block}\n\n오늘 수정된 노트(현재까지):\n{today_block}\n\n다음 섹션을 포함하여 마크다운 형식으로 작성하세요. 반드시 한국어로 작성하세요:\n\n## 좋은 아침입니다\n사용자가 작업 중이던 내용에 기반하여 따뜻하고 동기부여가 되는 문장을 한 문장 작성하세요.\n\n## 어제의 활동\n어떤 작업을 했나요? 구체적인 노트 이름을 참조하여 최대 2~4개의 불렛 포인트로 요약하세요.\n\n## 할 일 및 미완료 항목\n노트에서 발견된 작업들을 나열하세요. - [ ] 형식을 사용하세요.\n없다면 \"노트에서 발견된 대기 중인 작업이 없습니다.\"라고 적으세요.\n\n## 오늘 제안하는 집중 과제\n진행 중인 내용을 바탕으로 오늘 다루어 볼 만한 1~3가지 일을 제안하세요.\n\n## 수정된 노트\n수정된 모든 노트의 파일 이름을 [[위키링크]] 형태로 나열하세요. .md 확장자는 제외하세요.\n\n간결하고 구체적으로 작성하세요. 항상 한국어로 답변하세요.",
 
-    "_prompt_tip": "Placeholders: {weekday}, {date}, {grounding}, {yesterday_block}, {today_block}. Change 'Always write in English' to match your preferred language."
+    "_prompt_tip": "Placeholders: {weekday}, {date}, {grounding}, {yesterday_block}, {today_block}."
   },
 
 
   "study_recap": {
-    "_info": "Used by study_recap.py. Run after a study session to generate key concepts and review questions.",
+    "_info": "study_recap.py에서 사용됩니다. 학습 세션 후 복습 질문을 생성합니다.",
 
-    "prompt": "You are creating a study recap for spaced repetition review.\n\n{grounding}\n\nSTUDIED NOTES:\n{notes_block}\n\nALL VAULT NOTE TITLES (for finding connections):\n{all_titles}\n\nGenerate a structured study recap in Markdown with these sections:\n\n## 📚 Key Concepts\nFor each studied note, list the most important concepts, definitions, and ideas.\nUse sub-headings per note. Be specific — extract actual content, not vague descriptions.\nUse [[NoteName]] wikilinks when referencing the studied notes.\n\n## ❓ Review Questions\nWrite 5-10 questions that test understanding of the material studied.\nMix easy recall questions with deeper \"explain why\" or \"what's the difference between\" questions.\nFormat as a numbered list. Do NOT include answers.\n\n## 🔗 Connections to Other Notes\nIdentify 2-5 genuine connections between the studied material and other notes in the vault.\nFormat each as: [[StudiedNote]] -> [[OtherNote]]: one sentence explaining the connection.\nOnly include connections that are genuinely meaningful, not superficial.\n\nWrite in the same language as the studied notes. Be specific and dense — this is for studying, not casual reading.",
+    "prompt": "당신은 간격 반복 학습을 위한 복습 요약을 생성하고 있습니다.\n\n{grounding}\n\n학습한 노트:\n{notes_block}\n\n보관소의 모든 노트 제목:\n{all_titles}\n\n다음 섹션을 포함하는 구조화된 요약을 마크다운 형식으로 생성하세요. 반드시 한국어로 답변하세요:\n\n## 핵심 개념\n학습한 각 노트에 대해 가장 중요한 개념과 정의를 나열하세요. [[노트이름]] 위키링크를 사용하세요.\n\n## 복습 질문\n이해도를 테스트할 수 있는 5~10개의 질문을 작성하세요. 정답은 포함하지 마세요.\n\n## 다른 노트와의 연결\n학습한 내용과 보관소 내 다른 노트 사이의 의미 있는 연결 고리를 2~5개 식별하세요.\n형식: [[학습한노트]] -> [[다른노트]]: 연결 설명.\n\n한국어로 답변하세요. 밀도 있게 작성하세요.",
 
-    "_prompt_tip": "Placeholders: {grounding}, {notes_block}, {all_titles}. Change '5-10 questions' to adjust review question count."
+    "_prompt_tip": "Placeholders: {grounding}, {notes_block}, {all_titles}."
   },
 
 
   "txt_to_notes": {
-    "_info": "Used by txt_to_notes.py. Converts any text file into structured Obsidian notes. Two-pass process: plan then write.",
+    "_info": "txt_to_notes.py에서 사용됩니다. 텍스트 파일을 구조화된 노트로 변환합니다.",
 
-  "plan_prompt": "You are an expert knowledge curator for Obsidian.\n{instructions_block}\n{grounding}\n\nAnalyze the text below and decide how many notes to create.\nSplit only when topics are clearly distinct and each part has enough substance.\nPrefer fewer, richer notes over many thin ones.\n\nTEXT:\n{text}\n\nEXISTING VAULT TAGS (reuse when relevant):\n{tags_hint}\n\nEXISTING VAULT NOTE TITLES (for wikilinks later):\n{titles_hint}\n\nRespond ONLY with a valid JSON array. No explanation, no markdown fences, no extra text before or after.\nEach object must have these fields: title (string), type (one of: conversation, meeting, project, braindump, todo, reference, journal, other), tags (array of strings), summary (string, 1-2 sentences), related_existing (array of existing note titles or empty array).",
+  "plan_prompt": "당신은 Obsidian을 위한 전문 지식 큐레이터입니다.\n{instructions_block}\n{grounding}\n\n텍스트를 분석하고 몇 개의 노트를 만들지 결정하세요.\n\n텍스트:\n{text}\n\n유효한 JSON 배열로만 응답하세요. 추가 텍스트를 포함하지 마세요.\n각 객체는 title, type, tags, summary, related_existing 필드를 가져야 합니다. 모든 텍스트 필드는 한국어로 작성하세요.",
 
-    "_plan_prompt_tip": "Placeholders: {instructions_block}, {grounding}, {text}, {tags_hint}, {titles_hint}. The {{ and }} in the example are escaped braces — they render as { and } to the model.",
-
-    "write_prompt": "You are writing a rich, meaningful Obsidian note.\n{instructions_block}\n{grounding}\n\nNote title: \"{title}\"\nNote type: {type}\nWhat this note covers: {summary}\n\nSOURCE TEXT:\n{text}\n\nOther notes in this same batch — link with [[wikilinks]] when relevant:\n{batch_links}\n\nExisting vault notes to link when truly relevant:\n{related_links}\n\nExisting vault tags to reuse:\n{tags_hint}\n\nWrite the full note body in Markdown. Requirements:\n- Start directly with content, no title heading\n- Use ## headings to organize sections naturally\n- Be specific and detailed — no vague summaries, include real context\n- Use [[wikilinks]] to link to other notes in this batch or existing vault notes when it genuinely adds value\n- If there are tasks or follow-ups, use - [ ] checkbox format\n- Write in first person if it's a personal note\n- Minimum 200 words, aim for depth over brevity\n- Match the language of the source text\n- Do NOT invent information not present in the source text",
-
-    "_write_prompt_tip": "Placeholders: {instructions_block}, {grounding}, {title}, {type}, {summary}, {text}, {batch_links}, {related_links}, {tags_hint}."
+    "write_prompt": "당신은 풍부하고 의미 있는 Obsidian 노트를 작성하고 있습니다.\n{instructions_block}\n{grounding}\n\n노트 제목: \"{title}\"\n노트 유형: {type}\n내용 요약: {summary}\n\n소스 텍스트:\n{text}\n\n마크다운 형식으로 전체 노트 본문을 작성하세요. 요구 사항:\n- 제목 헤딩 없이 시작하세요.\n- ## 헤딩을 사용하여 섹션을 조직하세요.\n- [[위키링크]]를 적극 활용하세요.\n- 할 일은 - [ ] 형식을 사용하세요.\n- 답변은 한국어로 작성하세요.\n- 소스 텍스트에 없는 정보를 지어내지 마세요."
   }
 }
